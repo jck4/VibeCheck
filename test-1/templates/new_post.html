@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}New Post - Blog Platform{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-center">Create New Post</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="content_type" class="form-label">Content Type</label>
+                            <select class="form-select" id="content_type" name="content_type" required>
+                                <option value="markdown">Markdown</option>
+                                <option value="html">HTML</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Content</label>
+                            <div id="content-editor" class="form-control" contenteditable="true" style="min-height: 200px; padding: 10px; white-space: pre-wrap;"></div>
+                            <textarea id="content" name="content" style="display: none;"></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Create Post</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const contentEditor = document.getElementById('content-editor');
+        const contentInput = document.getElementById('content');
+        const contentType = document.getElementById('content_type');
+
+        // Handle paste events
+        contentEditor.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            
+            // If it's a URL, create a preview
+            if (text.match(/^https?:\/\//)) {
+                fetch('/api/link-preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: text })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching link preview:', data.error);
+                        document.execCommand('insertText', false, text);
+                        return;
+                    }
+
+                    const previewHTML = `
+                        <div class="link-preview">
+                            <div class="link-preview-content">
+                                <a href="${data.url}" target="_blank" rel="noopener noreferrer">
+                                    ${data.image ? `<div class="link-preview-image"><img src="${data.image}" alt="${data.title}"></div>` : ''}
+                                    <div class="link-preview-text">
+                                        <h3>${data.title}</h3>
+                                        <p>${data.description || ''}</p>
+                                        <span class="link-preview-url">${data.url}</span>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Insert the preview
+                    const range = window.getSelection().getRangeAt(0);
+                    const previewNode = document.createElement('div');
+                    previewNode.innerHTML = previewHTML;
+                    range.insertNode(previewNode);
+                    
+                    // Add a new line after the preview
+                    document.execCommand('insertHTML', false, '<br>');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.execCommand('insertText', false, text);
+                });
+            } else {
+                // Regular text paste
+                document.execCommand('insertText', false, text);
+            }
+        });
+
+        // Update hidden textarea with content before form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (contentType.value === 'markdown') {
+                // For markdown, get the raw text content
+                contentInput.value = contentEditor.textContent;
+            } else {
+                // For HTML, get the HTML content
+                contentInput.value = contentEditor.innerHTML;
+            }
+        });
+    </script>
+{% endblock %} 

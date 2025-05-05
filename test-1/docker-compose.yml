@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+      - "2222:22"
+    volumes:
+      - .:/app
+      - ./static/uploads:/app/static/uploads
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=your-secret-key-here
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: flask run --host=0.0.0.0
+
+networks:
+  app-network:
+    driver: bridge 
